@@ -1,9 +1,10 @@
-use std::cmp;
+//use std::cmp;
 use std::io;
 use std::os::unix::io::AsRawFd;
+use std::vec::Vec;
 use sgx_libc as libc;
 use iovec::IoVec;
-use iovec::unix as iovec;
+//use iovec::unix as iovec;
 
 pub trait VecIo {
     fn readv(&self, bufs: &mut [&mut IoVec]) -> io::Result<usize>;
@@ -13,32 +14,16 @@ pub trait VecIo {
 
 impl<T: AsRawFd> VecIo for T {
     fn readv(&self, bufs: &mut [&mut IoVec]) -> io::Result<usize> {
+        let vbufs: Vec<&mut [u8]> = bufs.iter_mut().map(|msl| msl.as_mut_bytes()).collect();
         unsafe {
-            let slice = iovec::as_os_slice_mut(bufs);
-            let len = cmp::min(<libc::c_int>::max_value() as usize, slice.len());
-            let rc = libc::ocall::readv(self.as_raw_fd(),
-                                 slice.as_ptr() as _,
-                                 len as libc::c_int);
-            if rc < 0 {
-                Err(io::Error::last_os_error())
-            } else {
-                Ok(rc as usize)
-            }
+            ::cvt_ocall(libc::ocall::readv(self.as_raw_fd(), vbufs))
         }
     }
 
     fn writev(&self, bufs: &[&IoVec]) -> io::Result<usize> {
         unsafe {
-            let slice = iovec::as_os_slice(bufs);
-            let len = cmp::min(<libc::c_int>::max_value() as usize, slice.len());
-            let rc = libc::ocall::writev(self.as_raw_fd(),
-                                  slice.as_ptr() as _,
-                                  len as libc::c_int);
-            if rc < 0 {
-                Err(io::Error::last_os_error())
-            } else {
-                Ok(rc as usize)
-            }
+            let vbufs: Vec<&[u8]> = bufs.iter().map(|msl| msl.as_bytes()).collect();
+            ::cvt_ocall(libc::ocall::writev(self.as_raw_fd(), vbufs))
         }
     }
 }

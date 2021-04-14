@@ -7,20 +7,20 @@ use sgx_libc as libc;
 use {io, Ready, Poll, PollOpt, Token};
 use event::Evented;
 use unix::EventedFd;
-use sys::unix::cvt;
+//use sys::unix::cvt;
 
 pub fn set_nonblock(fd: libc::c_int) -> io::Result<()> {
     unsafe {
-        let flags = libc::ocall::fcntl_arg0(fd, libc::F_GETFL);
-        cvt(libc::ocall::fcntl_arg1(fd, libc::F_SETFL, flags | libc::O_NONBLOCK)).map(|_|())
+        let flags = libc::ocall::fcntl_arg0(fd, libc::F_GETFL)?;
+        ::cvt_ocall(libc::ocall::fcntl_arg1(fd, libc::F_SETFL, flags | libc::O_NONBLOCK)).map(|_|())
     }
 }
 
 #[allow(unused)]
 pub fn set_cloexec(fd: libc::c_int) -> io::Result<()> {
     unsafe {
-        let flags = libc::ocall::fcntl_arg0(fd, libc::F_GETFD);
-        cvt(libc::ocall::fcntl_arg1(fd, libc::F_SETFD, flags | libc::FD_CLOEXEC)).map(|_| ())
+        let flags = libc::ocall::fcntl_arg0(fd, libc::F_GETFD)?;
+        ::cvt_ocall(libc::ocall::fcntl_arg1(fd, libc::F_SETFD, flags | libc::FD_CLOEXEC)).map(|_| ())
     }
 }
 

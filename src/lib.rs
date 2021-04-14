@@ -317,3 +317,8 @@ mod convert {
         duration.as_secs().saturating_mul(MILLIS_PER_SEC).saturating_add(u64::from(millis))
     }
 }
+
+use sgx_libc::OCallResult;
+fn cvt_ocall<T>(result: OCallResult<T>) -> io::Result<T> {
+    result.map_err(|e| e.into())
+}

@@ -12,7 +12,7 @@ use sgx_libc::{EPOLLET, EPOLLOUT, EPOLLIN, EPOLLPRI};
 
 use {io, Ready, PollOpt, Token};
 use event_imp::Event;
-use sys::unix::{cvt, UnixReady};
+use sys::unix::UnixReady;
 //use sys::unix::io::set_cloexec;
 
 /// Each Selector has a globally unique(ish) ID associated with it. This ID
@@ -46,7 +46,7 @@ impl Selector {
             //        fd
             //    }
             //}
-            cvt(libc::ocall::epoll_create1(libc::EPOLL_CLOEXEC))?
+            ::cvt_ocall(libc::ocall::epoll_create1(libc::EPOLL_CLOEXEC))?
         };
 
         // offset by 1 to avoid choosing 0 as the id of a selector
@@ -71,13 +71,10 @@ impl Selector {
         // Wait for epoll events for at most timeout_ms milliseconds
         evts.clear();
         unsafe {
-            let cnt = cvt(libc::ocall::epoll_wait(self.epfd,
-                                                  evts.events.as_mut_ptr(),
-                                                  evts.events.capacity() as i32,
-                                                  timeout_ms))?;
-            let cnt = cnt as usize;
-            evts.events.set_len(cnt);
-
+            libc::ocall::epoll_wait(self.epfd,
+                                            &mut evts.events,
+                                            timeout_ms)?;
+            let cnt = evts.events.len();
             for i in 0..cnt {
                 if evts.events[i].u64 as usize == awakener.into() {
                     evts.events.remove(i);
@@ -97,8 +94,7 @@ impl Selector {
         };
 
         unsafe {
-            cvt(libc::ocall::epoll_ctl(self.epfd, libc::EPOLL_CTL_ADD, fd, &mut info))?;
-            Ok(())
+            ::cvt_ocall(libc::ocall::epoll_ctl(self.epfd, libc::EPOLL_CTL_ADD, fd, &mut info))
         }
     }
 
@@ -110,8 +106,7 @@ impl Selector {
         };
 
         unsafe {
-            cvt(libc::ocall::epoll_ctl(self.epfd, libc::EPOLL_CTL_MOD, fd, &mut info))?;
-            Ok(())
+            ::cvt_ocall(libc::ocall::epoll_ctl(self.epfd, libc::EPOLL_CTL_MOD, fd, &mut info))
         }
     }
 
@@ -126,8 +121,7 @@ impl Selector {
         };
 
         unsafe {
-            cvt(libc::ocall::epoll_ctl(self.epfd, libc::EPOLL_CTL_DEL, fd, &mut info))?;
-            Ok(())
+            ::cvt_ocall(libc::ocall::epoll_ctl(self.epfd, libc::EPOLL_CTL_DEL, fd, &mut info))
         }
     }
 }
